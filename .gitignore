@@ -1,4 +1,7 @@
 .env
-_pycache_/
+.venv/
+__pycache__/
 .pytest_cache/
 *.pyc
+*.docx
+~$*
