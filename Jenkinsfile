@@ -8,27 +8,46 @@ pipeline {
             }
         }
 
-        stage('Verify Files') {
+        stage('Verify Environment') {
             steps {
-                sh 'pwd'
-                sh 'ls -la'
+                sh 'python3 --version'
+                sh 'git --version'
             }
         }
 
-        stage('Test Pipeline') {
+        stage('Install Dependencies') {
             steps {
-                echo 'Jenkins successfully executed the Jenkinsfile'
+                sh '''
+                    rm -rf .venv-ci
+                    python3 -m venv .venv-ci
+                    . .venv-ci/bin/activate
+                    python -m pip install --upgrade pip
+                    python -m pip install -r requirements.txt
+                '''
+            }
+        }
+
+        stage('Run Automated Tests') {
+            steps {
+                sh '''
+                    . .venv-ci/bin/activate
+                    python -m pytest -v
+                '''
             }
         }
     }
 
     post {
         success {
-            echo 'Pipeline completed successfully'
+            echo 'Continuous integration tests completed successfully'
         }
 
         failure {
-            echo 'Pipeline failed. Review the console output.'
+            echo 'Pipeline failed. Review the failed stage and console output.'
+        }
+
+        always {
+            sh 'rm -rf .venv-ci'
         }
     }
 }
