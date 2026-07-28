@@ -4,6 +4,8 @@ pipeline {
     environment {
         APP_IMAGE = "aaron-devops-app"
         APP_TAG = "${BUILD_NUMBER}"
+        APP_CONTAINER = "aaron-devops-app"
+        APP_NETWORK = "aaronproject_default"
     }
 
     stages {
@@ -53,10 +55,58 @@ pipeline {
             }
         }
 
-        stage('Verify Docker Image') {
+        stage('Deploy Application') {
             steps {
                 sh '''
-                    docker image inspect ${APP_IMAGE}:${APP_TAG}
+                    docker rm -f ${APP_CONTAINER} || true
+
+                    docker run -d \
+                        --name ${APP_CONTAINER} \
+                        --restart unless-stopped \
+                        --network ${APP_NETWORK} \
+                        -p 5000:5000 \
+                        ${APP_IMAGE}:${APP_TAG}
+                '''
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                sh '''
+                    python3 - <<'PY'
+import json
+import time
+import urllib.request
+
+url = "http://aaron-devops-app:5000/health"
+
+for attempt in range(1, 11):
+    try:
+        with urllib.request.urlopen(url, timeout=3) as response:
+            body = json.loads(response.read().decode())
+
+            if response.status == 200 and body.get("status") == "healthy":
+                print("Application health check passed")
+                print(body)
+                raise SystemExit(0)
+
+    except Exception as error:
+        print(f"Health check attempt {attempt} failed: {error}")
+
+    time.sleep(2)
+
+print("Application failed its health check")
+raise SystemExit(1)
+PY
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh '''
+                    docker ps --filter name=${APP_CONTAINER}
+                    docker inspect ${APP_CONTAINER}
                 '''
             }
         }
@@ -65,7 +115,7 @@ pipeline {
     post {
         success {
             echo "Pipeline completed successfully"
-            echo "Created Docker image ${APP_IMAGE}:${APP_TAG}"
+            echo "Deployed ${APP_IMAGE}:${APP_TAG}"
         }
 
         failure {
