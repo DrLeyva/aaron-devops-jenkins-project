@@ -1,10 +1,15 @@
 pipeline {
     agent any
 
+    environment {
+        APP_IMAGE = "aaron-devops-app"
+        APP_TAG = "${BUILD_NUMBER}"
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                echo 'Repository successfully loaded from GitHub'
+                echo 'Repository loaded from GitHub'
             }
         }
 
@@ -12,6 +17,7 @@ pipeline {
             steps {
                 sh 'python3 --version'
                 sh 'git --version'
+                sh 'docker --version'
             }
         }
 
@@ -35,11 +41,31 @@ pipeline {
                 '''
             }
         }
+
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                    docker build \
+                        -t ${APP_IMAGE}:${APP_TAG} \
+                        -t ${APP_IMAGE}:latest \
+                        .
+                '''
+            }
+        }
+
+        stage('Verify Docker Image') {
+            steps {
+                sh '''
+                    docker image inspect ${APP_IMAGE}:${APP_TAG}
+                '''
+            }
+        }
     }
 
     post {
         success {
-            echo 'Continuous integration tests completed successfully'
+            echo "Pipeline completed successfully"
+            echo "Created Docker image ${APP_IMAGE}:${APP_TAG}"
         }
 
         failure {
