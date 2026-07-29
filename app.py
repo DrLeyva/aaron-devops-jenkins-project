@@ -7,8 +7,8 @@ app = Flask(__name__)
 def home():
     return jsonify(
         application="Aaron DevOps Project",
-        message="Application is running",
-        version="1.0.0",
+        message="Application deployed automatically by Jenkins",
+        version="1.1.0",
     )
 
 
