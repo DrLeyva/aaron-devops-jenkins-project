@@ -9,7 +9,7 @@ def test_home_endpoint():
 
     assert response.status_code == 200
     assert data["application"] == "Aaron DevOps Project"
-    assert data["version"] == "1.0.0"
+    assert data["version"] == "1.1.0"
 
 
 def test_health_endpoint():
